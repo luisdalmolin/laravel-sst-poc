@@ -1,0 +1,45 @@
+FROM serversideup/php:8.3-unit as base
+
+USER root
+
+LABEL authors="Kirschbaum"
+LABEL maintainer="Kirschbaum"
+
+ENV AUTORUN_ENABLED=true
+
+RUN apt-get update \
+    && apt-get upgrade -y
+
+RUN install-php-extensions gd intl
+
+ENV NVM_VERSION v0.39.7
+ENV NODE_VERSION 21.6.0
+ENV NVM_DIR /usr/local/nvm
+RUN mkdir "$NVM_DIR"
+
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+
+ENV NODE_PATH $NVM_DIR/v$NODE_VERSION/lib/node_modules
+ENV PATH $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
+
+RUN echo "source $NVM_DIR/nvm.sh \
+    && nvm install $NODE_VERSION \
+    && nvm alias default $NODE_VERSION \
+    && nvm use default \
+    && nvm install-latest-npm" | bash
+
+FROM base as development
+
+# Save the build arguments as a variable
+ARG USER_ID
+ARG GROUP_ID
+
+# Drop back to our unprivileged user
+USER www-data
+
+FROM base as deploy
+
+COPY --chown=www-data:www-data . /var/www/html
+
+# Drop back to our unprivileged user
+USER www-data

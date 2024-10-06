@@ -3,17 +3,18 @@
 export default $config({
   app(input) {
     return {
-      name: "monorepo-template",
+      name: "laravel-sst",
       removal: input?.stage === "production" ? "retain" : "remove",
       home: "aws",
     };
   },
   async run() {
     await import("./infra/storage");
-    const api = await import("./infra/api");
+    const cluster = await import("./infra/laravel");
+    
 
     return {
-      api: api.myApi.url,
+      
     };
   },
 });
