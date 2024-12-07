@@ -5,7 +5,11 @@ import "sst"
 export {}
 declare module "sst" {
   export interface Resource {
-    "LaravelSst": {
+    "LaravelAppPoC-Scheduler": {
+      "service": string
+      "type": "sst.aws.Service"
+    }
+    "LaravelAppPoC-Web": {
       "service": string
       "type": "sst.aws.Service"
       "url": string
@@ -14,7 +18,14 @@ declare module "sst" {
       "name": string
       "type": "sst.aws.Bucket"
     }
-    "MyVpc": {
+    "RedisCluster": {
+      "host": string
+      "password": string
+      "port": number
+      "type": "sst.aws.Redis"
+      "username": string
+    }
+    "SSTVpc": {
       "type": "sst.aws.Vpc"
     }
   }

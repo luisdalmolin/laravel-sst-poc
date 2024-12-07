@@ -8,9 +8,10 @@ export default $config({
       home: "aws",
     };
   },
+
   async run() {
     await import("./infra/storage");
-    const cluster = await import("./infra/laravel");
+    const laravel = await import("./infra/laravel");
     
 
     return {

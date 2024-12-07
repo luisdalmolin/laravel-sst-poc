@@ -1,7 +1,7 @@
 /// <reference path="./../../.sst/platform/config.d.ts" />
 
 import { Component } from "../../.sst/platform/src/components/component.js";
-import { ComponentResourceOptions, Output, all, output } from "@pulumi/pulumi";
+import { ComponentResourceOptions, Output, all, output } from "../../.sst/platform/node_modules/@pulumi/pulumi";
 import { Input } from "../../.sst/platform/src/components/input.js";
 import { Link } from "../../.sst/platform/src/components/link.js";
 import { prepare, SsrSiteArgs } from "../../.sst/platform/src/components/aws/ssr-site";
@@ -14,10 +14,10 @@ type Ports = {listen: Port, forward: Port}[];
 enum ImageType {
   Web = 'web',
   Worker = 'worker',
-  Cli = 'cli',
+  Scheduler = 'scheduler',
 }
 
-export interface LaravelServiceArgs extends ClusterServiceArgs {
+export interface LaravelWebArgs extends ClusterServiceArgs {
   /**
    * Domain for the web layer.
    */
@@ -38,7 +38,7 @@ export interface LaravelArgs extends ClusterArgs {
   /**
   * If enabled, a container will be created to handle HTTP traffic.
   */
-  web?: LaravelServiceArgs;
+  web?: LaravelWebArgs;
   
   /**
   * If enabled, Laravel Scheduler will run on an isolated container.
@@ -57,6 +57,17 @@ export interface LaravelArgs extends ClusterArgs {
     * Running horizon?
     */
     horizon?: Input<boolean>;
+  }
+
+  /**
+   * Config settings.
+   */
+  config: {
+    php: Input<Number>;
+    deployment?: Input<{
+      migrate?: Input<boolean>;
+      optimize?: Input<boolean>;
+    }>;
   }
 }
 
@@ -83,7 +94,11 @@ export class LaravelLLT extends Component {
     }
     
     if (args.queue) {
-      addWorkerService();
+      // addWorkerService();
+    }
+    
+    if (args.scheduler) {
+      addSchedulerService();
     }
     
     function addWebService() {
@@ -119,6 +134,36 @@ export class LaravelLLT extends Component {
         
         dev: {
           command: `php ${sitePath}/artisan serve`,
+        },
+      });
+    }
+    
+    function addSchedulerService() {
+      cluster.addService(`${name}-Scheduler`, {
+        /**
+         * Image passed or use our default provided image.
+         */
+        image: args.web && args.web.image ? args.web.image : getDefaultImage(ImageType.Scheduler),
+        
+        // TODO: Check if it is really required to have the containerDefinitions
+
+        // transform: {
+        //   taskDefinition: {
+        //     containerDefinitions: $jsonStringify([
+        //       {
+        //         name: "LaravelSst",
+        //         image: "120266070056.dkr.ecr.us-east-1.amazonaws.com/sst-asset:LaravelSst",
+        //         portMappings: [{
+        //           containerPort: 8080,
+        //           hostPort: 8080,
+        //         }],
+        //       }
+        //     ])
+        //   },
+        // },
+        
+        dev: {
+          command: `php ${sitePath}/artisan schedule:work`,
         },
       });
     }
@@ -158,12 +203,10 @@ export class LaravelLLT extends Component {
 
     function getDefaultImage(imageType: ImageType, extraArgs: object = {}) {
       return {
-        // TODO: Figure out how to get the path from SST defaults
         context: sitePath,
-        dockerfile: `./laravel/Dockerfile.${imageType}`,
+        dockerfile: `./package/laravel/Dockerfile.${imageType}`,
         args: {
-          // TODO: Figure out if this is the way to pass LOCAL_PATH and how to get the right info
-          'build-arg': `LOCAL_PATH ${sitePath}`,
+          'PHP_VERSION': args.config.php.toString(),
           stage: "deploy",
           platform: "linux/amd64",
           ...extraArgs
@@ -173,6 +216,6 @@ export class LaravelLLT extends Component {
   }
 }
 
-const __pulumiType = "sst:aws:Laravel";
+const __pulumiType = "sst:aws:LaravelLLT";
 // @ts-expect-error
-Laravel.__pulumiType = __pulumiType;
+LaravelLLT.__pulumiType = __pulumiType;

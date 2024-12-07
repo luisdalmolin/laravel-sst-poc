@@ -1,6 +1,8 @@
 <?php
 
+use App\Console\Commands\LogLine;
 use Illuminate\Foundation\Application;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 
@@ -18,6 +20,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         //
+    })
+    ->withSchedule(function (Schedule $schedule) {
+        $schedule->call(new LogLine)->everyMinute();
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

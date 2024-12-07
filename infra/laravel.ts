@@ -1,38 +1,51 @@
 import { LaravelLLT } from "../package/laravel/laravel-sst";
+const path = require('path');
 
-const vpc = new sst.aws.Vpc("MyVpc");
+const vpc = new sst.aws.Vpc("SSTVpc");
 const redis = new sst.aws.Redis('RedisCluster', {
     vpc: vpc
 });
 
-const laravelComponent = new LaravelLLT('LaravelSst', {
+const laravelComponent = new LaravelLLT('LaravelAppPoC', {
+    path: './packages/app',
     vpc: vpc,
 
     config: {
-        php: 8.3,
-        deployment: './devops/deployment.sh',
+        php: 8.2,
+        deployment: {
+            migrate: true,
+            optimize: true,
+        }
     },
 
     web: {
-        link: [redis],
-        octane: {
-            server: 'frankenphp',
+        // link: [redis],
+        // octane: {
+        //     server: 'frankenphp',
+        // },
+        domain: {
+            name: 'sst.kirschbaum.dev',
+            dns: sst.aws.dns(),
         },
-        domain: 'sst.kirschbaum.dev',
-        scaling: {
-            min: 1,
-            max: 2,
-        },
+        // scaling: {
+        //     min: 1,
+        //     max: 2,
+        // },
     },
 
     scheduler: {
-        link: [redis],
+        // link: [redis],
+    },
+    
+    queue: {
+        horizon: true,
+        // link: [redis],
     },
 
-    queue: {
-        link: [redis],
-        horizon: true,
-    },
+    // queue: {
+    //     link: [redis],
+    //     horizon: true,
+    // },
 });
 
 // export const laravel = new sst.aws.Cluster("LaravelSstCluster", { vpc });
